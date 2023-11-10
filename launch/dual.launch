@@ -1,0 +1,12 @@
+<launch>
+
+<node pkg="dual_extrinsic_calibration" type="dual_extrinsic_calibration_node" name="dual_extrinsic_calibration_node"  output="screen"/>
+<!--<param name="_camera_1_topic" value="bla"/> -->
+<!-- <param name="_camera_1_topic" value="camera_1_topic"/> -->
+<!-- <param name="_camera_2_info" value="camera_2_info"/>
+  -->
+<!-- <param name="_camera_2_topic" value="camera_2_topic"/>
+ -->
+
+
+</launch> 
