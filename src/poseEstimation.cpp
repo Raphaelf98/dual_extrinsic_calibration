@@ -4,6 +4,13 @@ poseEstimation::poseEstimation()
 {
     std::cout<< "created Pose Estimator"<<std::endl;
 }
+/*
+Initialize class members with required parameters:
+    1. bordSize - defines size of checkerboard
+    2. squareSize - defines size checkerboard square in m
+    3. cameraMatrix - opencv 4x4 camera matrix 
+    4. distCoeffs - distortion vector
+*/
 void poseEstimation::initialize(cv::Size_<int> boardSize,float squareSize,const cv::Mat& cameraMatrix,const std::vector<double>& distCoeffs)
 {   
     boardSize_ = boardSize;
@@ -11,7 +18,6 @@ void poseEstimation::initialize(cv::Size_<int> boardSize,float squareSize,const 
     cameraMatrix_ = cameraMatrix;
     distCoeffs_ = distCoeffs;
     //create 3D chessboard corner points in chessoard reference frame
-    std::cout<<"HERER "<<std::endl;
     calcChessboardCorners_();
     //create coordinate axes
     axis_.push_back(cv::Point3d(3 * squareSize_, 0.0, 0.0));
@@ -22,6 +28,9 @@ void poseEstimation::initialize(cv::Size_<int> boardSize,float squareSize,const 
 poseEstimation::~poseEstimation()
 {
 }
+/*
+Draw Axes on Chessboard corner points
+*/
 void poseEstimation::drawAxes_(const cv::Mat &src_, cv::Mat &dst_,
                           std::vector<cv::Point2d> &imgPts_,
                           std::vector<cv::Point2f> &cornersSP_) {
@@ -33,6 +42,10 @@ void poseEstimation::drawAxes_(const cv::Mat &src_, cv::Mat &dst_,
   cv::arrowedLine(dst_, cornersSP_[0], imgPts_[2], cv::Scalar(255, 0, 0), 2,
                   cv::LINE_AA, 0);
 }
+/*
+Computes rotation (rvec) and translation (tvec) vectors from chessboard 
+    corners given in 3D chessboard frame and image corners (2D). 
+*/
 void poseEstimation::helper_RT_ImgPoints_(cv::Mat &src_, cv::Mat &rvec_,
                                      cv::Mat &tvec_,
                                      std::vector<cv::Point2f> &corners_,
@@ -47,11 +60,19 @@ void poseEstimation::helper_RT_ImgPoints_(cv::Mat &src_, cv::Mat &rvec_,
     cv::solvePnP(boardPts_, corners_, cameraMatrix_,
                      distCoeffs_, rvec_, tvec_, false,cv::SOLVEPNP_IPPE);
 }
+/*
+    Transfromation from cv::Mat1f to cv::Vec3f. 
+    Returns cv::Vec3f.
+*/
 cv::Vec3f poseEstimation::to_vec3f_(cv::Mat1f const& m)
 {
     CV_Assert((m.rows == 3) && (m.cols == 1));
     return cv::Vec3f(m.at<float>(0), m.at<float>(1), m.at<float>(2));
 }
+/*
+Compute Pose from image that contains a chessboard.
+Returns true if pose could be computed. 
+*/
 bool poseEstimation::estimatePose(const cv::Mat &img)
 {       
 
@@ -74,29 +95,14 @@ bool poseEstimation::estimatePose(const cv::Mat &img)
         cv::projectPoints(axis_, rvec, tvec, this->cameraMatrix_, this->distCoeffs_,
                         imgPts, cv::noArray(), 0);
         drawAxes_(img, outputFrame, imgPts, corners);
-        /*
-        std::cout << "rotation " << std::endl;
-        std::cout << "x: " << rvec.at<double>(0, 0) * (180 / M_PI) << " degree"
-                << std::endl
-                << "y: " << rvec.at<double>(1, 0) * (180 / M_PI) << " degree"
-                << std::endl
-                << "z: " << rvec.at<double>(2, 0) * (180 / M_PI) << " degree"
-                << std::endl;
-        std::cout << "translation " << std::endl;
-        std::cout << "x: " << tvec.at<double>(0, 0) << " meter" << std::endl
-                << "y: " << tvec.at<double>(1, 0) << " meter" << std::endl
-                << "z: " << tvec.at<double>(2, 0) << " meter" << std::endl;*/
+     
         cv::drawChessboardCorners(outputFrame, boardSize_, corners,patternWasFound);
     
         RVec_ =  to_vec3f_(rvec);
         cv::Vec3f translationVec =  to_vec3f_(tvec);
         
         H_ = cv::Affine3f(RVec_, translationVec);
-        /*
-        std::cout<<"ROTATION: "<<H_.rotation()<<std::endl;
-        std::cout<<"TRANSLATION: "<<H_.translation()<<std::endl;
-        */
-        
+
         return true;
     }
     else{
@@ -113,6 +119,9 @@ cv::Vec3f poseEstimation::getRVec()
 {
     return RVec_;
 }
+/*
+Create 3D chessboard corner points. 
+*/
 void poseEstimation::calcChessboardCorners_()
 {
         objectPoints_.resize(0);

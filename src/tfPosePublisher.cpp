@@ -3,28 +3,27 @@
 #include <geometry_msgs/PoseStamped.h>
 
 std::string turtle_name;
-
-
-
-void poseCallback(const geometry_msgs::PoseStampedConstPtr& msg){
-  
-  
-}
+/*  TF_Broadcaster class
+This class relayes a relative camera pose to a tf frame. 
+*/
 class TF_Broadcaster{
   public:
     
     TF_Broadcaster()
     {
+      //Get parent frame 
       node_.getParam("parent_optical_frame", parent_optical_frame_);
       ROS_INFO("Got parent frame:%s ", parent_optical_frame_.c_str());
+      //Subscribe to relative camera pose published by dualExtrinsicCalibrationNode.
       sub_= node_.subscribe<geometry_msgs::PoseStamped>( "camera_pose_rel", 10, &TF_Broadcaster::poseCallback, this);
       
     }
+    /*
+    Reads PoseStamped messages and pubishes StampedTransform. 
+    */
     void poseCallback(const geometry_msgs::PoseStampedConstPtr& msg)
     {
-      
       transform_.setOrigin( tf::Vector3(msg->pose.position.x, msg->pose.position.y, msg->pose.position.z) );
-  
       tf::Quaternion q(msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z, msg->pose.orientation.w );
       static tf::TransformBroadcaster br_;
       transform_.setRotation(q);

@@ -15,85 +15,43 @@ using namespace sensor_msgs;
 using namespace message_filters;
 
 
-void callback(const ImageConstPtr& image1, const ImageConstPtr& image2, 
-              const sensor_msgs::CameraInfoConstPtr& camera_info1, const sensor_msgs::CameraInfoConstPtr& camera_info2)
-{
- 
-  try
-  {
-    cv::imshow("OPENNI CAM", cv_bridge::toCvShare(image1, "bgr8")->image);
-    cv::imshow("WEB CAM", cv_bridge::toCvShare(image2, "bgr8")->image);
-    
-  }
-  catch (cv_bridge::Exception& e)
-  {
-    ROS_ERROR("Could not convert from '%s' to 'bgr8'.", image1->encoding.c_str());
-    ROS_ERROR("Could not convert from '%s' to 'bgr8'.", image2->encoding.c_str());
-  }
-  int k = cv::waitKey(1);
-  
-  if (k == 32)
-  {
-    
-    boost::array<double, 9> K1 = camera_info1->K;
-    boost::array<double, 9> K2 = camera_info2->K;
-    cv::Mat K1_mat = cv::Mat(3, 3, CV_64F);
-    cv::Mat K2_mat = cv::Mat(3, 3, CV_64F);
-    int col = 0;
-    int row = 0;
-    for(size_t i = 0; i<K1.size(); i++)
-    {
-      
-      K1_mat.at<double>(row,col) = K1[i];
-      K2_mat.at<double>(row,col) = K2[i];
-      col++;
-      if ((i+1)%3==0)
-      {
-        col = 0;
-        row ++;
-      }
-      
-      
-    }
-    cv::Size_<int> size(8,5);
-    dualExtrinsicCalibration dualcalibrator(size, 0.03, K1_mat, K2_mat,camera_info1->D, camera_info2->D,10);
-    dualcalibrator.copmuteTransformation(cv_bridge::toCvShare(image1, "bgr8")->image,cv_bridge::toCvShare(image2, "bgr8")->image);
-
-    std::cout << "compute transformation .. "<<std::endl;
-  }
-  
-  
-}
-
-
-
+/* DualCalibrator class 
+This class serves as a wrapper for a ros node to compute the relative camera pose between two cameras. 
+It subscribes to two camera info and two camera image topics and 
+after successfully computing a relative pose a stamped pose is publised.
+A Message filter ensures approximately synchronous images.  
+*/
 class DualCalibrator
 {
     public:
-        DualCalibrator():
-            nh{},samples_(0),
-            sync_( MySyncPolicy(100),  image1_sub,  image2_sub),continuous_(0),
-            timer(nh.createTimer(ros::Duration(0.1), &DualCalibrator::main_loop, this) )
+        /*
+        Initialize the node with the number of samples that
+        should be used for computing the average rotation and translation (see dualExtrinsicCalibration.cpp)
+        */
+        DualCalibrator(size_t num_samples):
+            nh_{},sample_(0),num_samples_(num_samples),
+            sync_( MySyncPolicy_(100),  image1_sub_,  image2_sub_),continuous_(0)
+            
          {
-          cv::namedWindow("OPENNI CAM");
-          cv::namedWindow("WEB CAM");
-          
-          nh.getParam("camera_1_image",img_topic_1_ );
-          nh.getParam("camera_2_image",img_topic_2_ );
-          nh.getParam("camera_1_info",inf_topic_1_ );
-          nh.getParam("camera_2_info",inf_topic_2_ );
+          cv::namedWindow("Camera 1");
+          cv::namedWindow("Camera 2");
+          //retrieve parameters from launch file
+          nh_.getParam("camera_1_image",img_topic_1_ );
+          nh_.getParam("camera_2_image",img_topic_2_ );
+          nh_.getParam("camera_1_info",inf_topic_1_ );
+          nh_.getParam("camera_2_info",inf_topic_2_ );
 
           
-          image1_sub.subscribe(nh, img_topic_1_, 1);
-          image2_sub.subscribe(nh, img_topic_2_, 1);
+          image1_sub_.subscribe(nh_, img_topic_1_, 1);
+          image2_sub_.subscribe(nh_, img_topic_2_, 1);
          
 
           sync_.registerCallback(boost::bind(&DualCalibrator::callback, this, _1, _2));
 
           sensor_msgs::CameraInfoConstPtr camInfomsg_1,camInfomsg_2;
-          camInfomsg_1 = ros::topic::waitForMessage<sensor_msgs::CameraInfo>(inf_topic_1_,nh);
-          camInfomsg_2 = ros::topic::waitForMessage<sensor_msgs::CameraInfo>(inf_topic_2_,nh);
-
+          camInfomsg_1 = ros::topic::waitForMessage<sensor_msgs::CameraInfo>(inf_topic_1_,nh_);
+          camInfomsg_2 = ros::topic::waitForMessage<sensor_msgs::CameraInfo>(inf_topic_2_,nh_);
+          //Get camera matrices and distortion vectors from camera info topics. Instantiate dualExtrinsicCalibration object. 
           if(camInfomsg_1 != NULL && camInfomsg_2 != NULL)
           {
              boost::array<double, 9> K1 = camInfomsg_1->K;
@@ -113,24 +71,32 @@ class DualCalibrator
                  col = 0;
                  row ++;
                }
-               
-               
+            
              }
              cv::Size_<int> size(8,5);
-             dualcalibrator_ = dualExtrinsicCalibration(size, 0.03, K1_mat, K2_mat,camInfomsg_1->D, camInfomsg_2->D,10);
+             dualcalibrator_ = dualExtrinsicCalibration(size, 0.03, K1_mat, K2_mat,camInfomsg_1->D, camInfomsg_2->D,num_samples_);
                
           }
-          pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>("camera_pose_rel", 1);
+          pose_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("camera_pose_rel", 1);
          }
+        /*
+        Image subscriber callback. Reads from image messages and passes them to dualExtrinsicCalibration class member functions. 
+        Node can be run in two modes:
+        1. Continous mode
+          For this Press "c". num_samples number of images are collected before average transform is computed and published continuously.
+        2. Single mode
+          For this press "space bar". It collects images from both cameras whenever the space bar is pressed. 
+          num_samples determins after how many images an average transform is computed
 
-         void callback(const ImageConstPtr& image1, const ImageConstPtr& image2)
+        */
+        void callback(const ImageConstPtr& image1, const ImageConstPtr& image2)
          {
          
            
            try
            {
-             cv::imshow("OPENNI CAM", cv_bridge::toCvShare(image1, "bgr8")->image);
-             cv::imshow("WEB CAM", cv_bridge::toCvShare(image2, "bgr8")->image);
+             cv::imshow("Camera 1", cv_bridge::toCvShare(image1, "bgr8")->image);
+             cv::imshow("Camera 2", cv_bridge::toCvShare(image2, "bgr8")->image);
              
            }
            catch (cv_bridge::Exception& e)
@@ -144,11 +110,12 @@ class DualCalibrator
            {
             continuous_ = true;
            }
+
            if(continuous_)
            {
             std::vector<double> q(4);
             std::vector<double> t(3);
-            if(dualcalibrator_.continuousNAverageTransformation(cv_bridge::toCvShare(image1, "bgr8")->image,cv_bridge::toCvShare(image2, "bgr8")->image,q,t))
+            if(dualcalibrator_.continuousNAverageTransformation(cv_bridge::toCvShare(image1, "bgr8")->image, cv_bridge::toCvShare(image2, "bgr8")->image, q, t))
             {
               ROS_INFO("Publishing Pose");
               // construct a pose message
@@ -168,18 +135,19 @@ class DualCalibrator
            
             
            }
-           if (samples_ < 10 & !continuous_)
-           {
-            //press "space bar" to run in single sample mode
-           if (k == 32)
+           if (sample_ < num_samples_ & !continuous_)
            {
             
+            //press "space bar" to run in single sample mode
+            if (k == 32)
+            {
+
               dualcalibrator_.copmuteTransformation(cv_bridge::toCvShare(image1, "bgr8")->image,cv_bridge::toCvShare(image2, "bgr8")->image);
-             std::cout << "compute transformation .. "<<std::endl;
-             samples_ ++;
+              std::cout << "compute transformation .. "<<std::endl;
+              sample_ ++;
+            }
            }
-           }
-           else if(samples_==10)
+           else if(sample_==num_samples_)
            {
               dualcalibrator_.averageTransformation();
               cv::destroyAllWindows();
@@ -196,7 +164,7 @@ class DualCalibrator
               pose_stamped_.pose.position.x = dualcalibrator_.getTX();
               pose_stamped_.pose.position.y = dualcalibrator_.getTY();
               pose_stamped_.pose.position.z = dualcalibrator_.getTZ();
-              samples_ ++;
+              sample_ ++;
            }
            else
            {
@@ -210,11 +178,7 @@ class DualCalibrator
            
            
          }
-         void main_loop(const ros::TimerEvent &) const
-         {
-            // implement the state machine here
-          
-         }
+        
          ~DualCalibrator()
          {
           
@@ -222,20 +186,21 @@ class DualCalibrator
 
     private:
         std::string img_topic_1_, img_topic_2_, inf_topic_1_, inf_topic_2_;
-        typedef sync_policies::ApproximateTime<Image, Image> MySyncPolicy;
-        message_filters::Subscriber<Image> image1_sub;
-        message_filters::Subscriber<Image> image2_sub;
-        message_filters::Subscriber<CameraInfo> camera1_sub;
-        message_filters::Subscriber<CameraInfo> camera2_sub;
-        Synchronizer<MySyncPolicy> sync_;
+        typedef sync_policies::ApproximateTime<Image, Image> MySyncPolicy_;
+        message_filters::Subscriber<Image> image1_sub_;
+        message_filters::Subscriber<Image> image2_sub_;
+        message_filters::Subscriber<CameraInfo> camera1_sub_;
+        message_filters::Subscriber<CameraInfo> camera2_sub_;
+        Synchronizer<MySyncPolicy_> sync_;
         dualExtrinsicCalibration dualcalibrator_;
-        ros::NodeHandle nh;
-        ros::Subscriber sub;
+        ros::NodeHandle nh_;
+        ros::Subscriber sub_;
         ros::Publisher pose_pub_;
         geometry_msgs::PoseStamped pose_stamped_;
-        ros::Timer timer;
+        ros::Timer timer_;
         bool continuous_;
-        int samples_;
+        int sample_, num_samples_;
+        
 };
 
 
@@ -244,7 +209,7 @@ class DualCalibrator
 int main(int argc, char * argv[])
 {
     ros::init(argc, argv, "dual_extrinsic_calibration_node");
-    DualCalibrator node;
+    DualCalibrator node(10);
     ros::spin();
     return 0;
 }

@@ -1,12 +1,9 @@
 #include"dualExtrinsicCalibration.h"
 
-/*dualExtrinsicCalibration::dualExtrinsicCalibration(cv::Size_<int> boardSize,float squareSize,
-                            cv::Mat& cameraMatrix1, std::vector<double>& distCoeffs1,
-                            cv::Mat& cameraMatrix2,  std::vector<double>& distCoeffs2)
-{  
-
-}*/
 dualExtrinsicCalibration::dualExtrinsicCalibration(){}
+/*
+Convert 2D Mat to std::vector<double>.
+*/
 void dualExtrinsicCalibration::getVecFromMat(std::vector<double> &vec, cv::Mat &M){
     for(int i = 0; i < M.rows; i++)
     {
@@ -15,6 +12,9 @@ void dualExtrinsicCalibration::getVecFromMat(std::vector<double> &vec, cv::Mat &
         vec.push_back(Mi[j]);
     }
 }
+/*
+Constructor to read camera parameters from yaml file
+*/
 dualExtrinsicCalibration::dualExtrinsicCalibration(cv::Size_<int> boardSize,float squareSize, std::string calib_yaml_1, std::string calib_yaml_2)
 {
     
@@ -52,6 +52,15 @@ dualExtrinsicCalibration::dualExtrinsicCalibration(cv::Size_<int> boardSize,floa
     pose2_.initialize(boardSize, squareSize ,cameraMatrix2, dC2);
 
 }   
+/*
+Constructor to initialize class object with camera matrices and distortion parameters directly. 
+The following Paramters are required: 
+    1. boardSize - Size of chessboard
+    2. squareSize - Distance between two chessboard corners in m
+    3. cameraMatrix1, cameraMatrix2 - Camera matrices in cv::Mat format.
+    4. distCoeffs1, distCoeffs2 - Distortion paramters based on opencv camera model.
+    5. num_samples - Number of samples to collect before cumputing mean rotation and translation.
+*/
 dualExtrinsicCalibration::dualExtrinsicCalibration(cv::Size_<int> boardSize,float squareSize, cv::Mat& cameraMatrix1,cv::Mat& cameraMatrix2,  
                             const std::vector<double>& distCoeffs1, const std::vector<double>& distCoeffs2, int num_samples)
 {
@@ -123,6 +132,9 @@ double dualExtrinsicCalibration::getTZ()
 {
     return avg_trans_(2);
 }
+/*
+Computes average rotation matrix and average rotation vector.
+*/
 bool dualExtrinsicCalibration::averageTransformation()
 {   
 
@@ -137,11 +149,11 @@ bool dualExtrinsicCalibration::averageTransformation()
     std::cout<< "Average Translation Matrix: "<<final_.translation()<<std::endl;
    return 0;
 }
+
 bool dualExtrinsicCalibration::continuousTransformation(const cv::Mat &img1,const cv::Mat &img2,std::vector<double> &orientation, std::vector<double> &position)
 {
     cv::Affine3<double> H1,H2,H2_inv,H_1_2;
     pose1_.estimatePose(img1);
-    
     H1 = pose1_.getTransform();
    
     pose2_.estimatePose(img2);
@@ -173,7 +185,12 @@ bool dualExtrinsicCalibration::continuousTransformation(const cv::Mat &img1,cons
     std::cout<<"H12 translation: "<< H_1_2.translation()<<std::endl;
 
 }
-
+/*
+Computes n (num_samples_) rotation matrices and translation vectors from image 1 and image 2. 
+The relative transform between camera 1 and camera 2 is computed by solving H_1_2 = H_2^(-1)H_1.
+If num_samples_ of relative transforms from both img1 and img2 were successfully computed, their average is calcualted.
+Results are given as position (x,y,z) and orientation(x,y,z,w) vectors
+*/
 bool dualExtrinsicCalibration::continuousNAverageTransformation(const cv::Mat &img1,const cv::Mat &img2,std::vector<double> &orientation, std::vector<double> &position)
 {
     if(counter_ <= num_samples_)
@@ -183,8 +200,6 @@ bool dualExtrinsicCalibration::continuousNAverageTransformation(const cv::Mat &i
         if(pose1_.estimatePose(img1) && pose2_.estimatePose(img2))
         {
             H1 = pose1_.getTransform();
-    
-        
             H2 = pose2_.getTransform();
             H2_inv = H2.inv();
             H_1_2 = H2_inv.concatenate(H1);
@@ -199,11 +214,7 @@ bool dualExtrinsicCalibration::continuousNAverageTransformation(const cv::Mat &i
             push_back(matxd_ ,vec4d, sample_);
             cv::Vec3d trans= H_1_2.translation();
             trans_acc_    = trans_acc_+trans;
-            /*std::cout << "TRANS MATRIX: "<< trans<<std::endl;
-            std::cout << "MATRIX: "<< trans_acc_<<std::endl;
-            std::cout<<"H12 rotation: "<< H_1_2.rotation()<<std::endl;
-            std::cout<<"Quaternion: "<< q<<std::endl;
-            std::cout<<"H12 translation: "<< H_1_2.translation()<<std::endl;*/
+       
             sample_++;
             counter_++;
         }
@@ -233,15 +244,23 @@ bool dualExtrinsicCalibration::continuousNAverageTransformation(const cv::Mat &i
         return true;
     }
 }
+/*
+Computes average translation from trans_acc_ and number of samples accumulated 
+*/
 cv::Vec3d dualExtrinsicCalibration::computeAverageTranslation()
 {   
     return trans_acc_*(1.0/static_cast<double>(sample_));
 }
+/*
+Computes rotation matrices and translation vectors from image 1 and image 2. 
+The relative transform between camera 1 and camera 2 is computed by solving H_1_2 = H_2^(-1)H_1.
+Orientation Quaternions are pushed back to matxd_ (Eigen::MatrixXd) and trans_acc_ sums up translation vectors. 
+Used in combination with averageTransformation class member function. 
+*/
 bool dualExtrinsicCalibration::copmuteTransformation(const cv::Mat &img1,const cv::Mat &img2)
 {
     cv::Affine3<double> H1,H2,H2_inv,H_1_2;
     pose1_.estimatePose(img1);
-    
     H1 = pose1_.getTransform();
    
     pose2_.estimatePose(img2);
@@ -253,8 +272,6 @@ bool dualExtrinsicCalibration::copmuteTransformation(const cv::Mat &img1,const c
     cv::Mat input;
     Eigen::Vector4d vec4d;
 
-    
-    
     push_back(matxd_ ,vec4d, sample_);
     cv::Vec3d trans= H_1_2.translation();
     trans_acc_    = trans_acc_+trans;

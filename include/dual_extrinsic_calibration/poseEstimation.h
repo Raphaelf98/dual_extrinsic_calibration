@@ -9,7 +9,14 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/opencv.hpp"
- 
+
+/* poseEstimation class
+
+ This class serves as a wrapper for computing an external 
+ camera pose relative to a checkerboard. Under the hood is OpenCV's solvePnp function that solves 
+ the pose computation problem by solving for the rotation and translation 
+ that minimizes the reprojection error from 3D-2D point correspondences.
+*/
 class poseEstimation
 {
 private:
