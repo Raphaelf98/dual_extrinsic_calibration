@@ -13,6 +13,7 @@
 class poseEstimation
 {
 private:
+  cv::Vec3f RVec_;
   cv::Mat cameraMatrix_; 
   std::vector<double> distCoeffs_;
   cv::Size_<int> patternSize_;
@@ -36,6 +37,7 @@ public:
     void initialize(cv::Size_<int> boardSize,float squareSize,const cv::Mat& cameraMatrix,const  std::vector<double>& distCoeffs);
     bool estimatePose(const cv::Mat &img);
     cv::Affine3<float> getTransform();
+    cv::Vec3f getRVec();
     ~poseEstimation();
 };
 

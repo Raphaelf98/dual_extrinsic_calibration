@@ -41,9 +41,11 @@ void poseEstimation::helper_RT_ImgPoints_(cv::Mat &src_, cv::Mat &rvec_,
                             30, 0.001);
   cv::cornerSubPix(src_, corners_, cv::Size(11, 11), cv::Size(-1, -1),
                    termcrit);
-  cv::solvePnPRansac(boardPts_, corners_, cameraMatrix_,
+  /*cv::solvePnPRansac(boardPts_, corners_, cameraMatrix_,
                      distCoeffs_, rvec_, tvec_, false, 100, 8.0, 0.99,
-                     cv::noArray(), cv::SOLVEPNP_EPNP);
+                     cv::noArray(), cv::SOLVEPNP_EPNP);*/
+    cv::solvePnP(boardPts_, corners_, cameraMatrix_,
+                     distCoeffs_, rvec_, tvec_, false,cv::SOLVEPNP_IPPE);
 }
 cv::Vec3f poseEstimation::to_vec3f_(cv::Mat1f const& m)
 {
@@ -72,6 +74,7 @@ bool poseEstimation::estimatePose(const cv::Mat &img)
         cv::projectPoints(axis_, rvec, tvec, this->cameraMatrix_, this->distCoeffs_,
                         imgPts, cv::noArray(), 0);
         drawAxes_(img, outputFrame, imgPts, corners);
+        /*
         std::cout << "rotation " << std::endl;
         std::cout << "x: " << rvec.at<double>(0, 0) * (180 / M_PI) << " degree"
                 << std::endl
@@ -82,16 +85,17 @@ bool poseEstimation::estimatePose(const cv::Mat &img)
         std::cout << "translation " << std::endl;
         std::cout << "x: " << tvec.at<double>(0, 0) << " meter" << std::endl
                 << "y: " << tvec.at<double>(1, 0) << " meter" << std::endl
-                << "z: " << tvec.at<double>(2, 0) << " meter" << std::endl;
+                << "z: " << tvec.at<double>(2, 0) << " meter" << std::endl;*/
         cv::drawChessboardCorners(outputFrame, boardSize_, corners,patternWasFound);
     
-        cv::Vec3f rotationVec =  to_vec3f_(rvec);
+        RVec_ =  to_vec3f_(rvec);
         cv::Vec3f translationVec =  to_vec3f_(tvec);
-    
-        H_ = cv::Affine3f(rotationVec, translationVec);
+        
+        H_ = cv::Affine3f(RVec_, translationVec);
+        /*
         std::cout<<"ROTATION: "<<H_.rotation()<<std::endl;
         std::cout<<"TRANSLATION: "<<H_.translation()<<std::endl;
-
+        */
         
         return true;
     }
@@ -104,6 +108,10 @@ bool poseEstimation::estimatePose(const cv::Mat &img)
 cv::Affine3<float> poseEstimation::getTransform()
 {
     return H_;
+}
+cv::Vec3f poseEstimation::getRVec()
+{
+    return RVec_;
 }
 void poseEstimation::calcChessboardCorners_()
 {
