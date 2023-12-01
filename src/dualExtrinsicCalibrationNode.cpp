@@ -122,11 +122,11 @@ class DualCalibrator
 
               pose_stamped_.header.frame_id = "camera_frame";
               
-              //NOTE: QUATERNIONS HAVE NEGATIVE SIGN
-              pose_stamped_.pose.orientation.x = q[0];
-              pose_stamped_.pose.orientation.y = q[1];
-              pose_stamped_.pose.orientation.z = q[2];
-              pose_stamped_.pose.orientation.w = q[3];
+              
+              pose_stamped_.pose.orientation.x = q[1];
+              pose_stamped_.pose.orientation.y = q[2];
+              pose_stamped_.pose.orientation.z = q[3];
+              pose_stamped_.pose.orientation.w = q[0];
 
               pose_stamped_.pose.position.x = t[0];
               pose_stamped_.pose.position.y = t[1];

@@ -106,19 +106,19 @@ Eigen::Vector4d dualExtrinsicCalibration::avg_quaternion_markley(){
 }
 double dualExtrinsicCalibration::getQX()
 {
-    return avg_quat_(1);
+    return avg_quat_(0);
 }
 double dualExtrinsicCalibration::getQY()
 {
-    return avg_quat_(2);
+    return avg_quat_(1);
 }
 double dualExtrinsicCalibration::getQZ()
 {
-    return avg_quat_(3);
+    return avg_quat_(2);
 }
 double dualExtrinsicCalibration::getQW()
 {
-    return avg_quat_(0);
+    return avg_quat_(3);
 }
 double dualExtrinsicCalibration::getTX()
 {
@@ -141,7 +141,7 @@ bool dualExtrinsicCalibration::averageTransformation()
    avg_quat_ = avg_quaternion_markley();
    cv::Quat<double> q;
    cv::Matx33d avgRot;
-   vector4dToCvQuat( avg_quat_,q);
+   vector4dToCvQuat(avg_quat_,q);
    avgRot = q.toRotMat3x3();
    avg_trans_ = computeAverageTranslation();
     cv::Affine3d final_(avgRot,avg_trans_);
@@ -150,41 +150,6 @@ bool dualExtrinsicCalibration::averageTransformation()
    return 0;
 }
 
-bool dualExtrinsicCalibration::continuousTransformation(const cv::Mat &img1,const cv::Mat &img2,std::vector<double> &orientation, std::vector<double> &position)
-{
-    cv::Affine3<double> H1,H2,H2_inv,H_1_2;
-    pose1_.estimatePose(img1);
-    H1 = pose1_.getTransform();
-   
-    pose2_.estimatePose(img2);
-    H2 = pose2_.getTransform();
-
-    H2_inv = H2.inv();
-    H_1_2 = H2_inv.concatenate(H1);
-    cv::Matx33f Q = H_1_2.rotation();
-    cv::Mat input;
-    Eigen::Vector4d vec4d;
-
-    affine3ToMat(Q,input);
-    cv::Quat<double> q = cv::Quat<double>::createFromRotMat(input);
-    cvQuatToVector4d(q, vec4d);
-    
-    orientation[0] = vec4d(0);
-    orientation[1] = vec4d(1);
-    orientation[2] = vec4d(2);
-    orientation[3] = vec4d(3);
-    
-    cv::Vec3d trans= H_1_2.translation();
-    position[0] = trans(0);
-    position[1] = trans(1);
-    position[2] = trans(2);
-    std::cout << "TRANS MATRIX: "<< trans<<std::endl;
-    std::cout << "MATRIX: "<< trans_acc_<<std::endl;
-    std::cout<<"H12 rotation: "<< H_1_2.rotation()<<std::endl;
-    std::cout<<"Quaternion: "<< q<<std::endl;
-    std::cout<<"H12 translation: "<< H_1_2.translation()<<std::endl;
-
-}
 /*
 Computes n (num_samples_) rotation matrices and translation vectors from image 1 and image 2. 
 The relative transform between camera 1 and camera 2 is computed by solving H_1_2 = H_2^(-1)H_1.
@@ -213,7 +178,7 @@ bool dualExtrinsicCalibration::continuousNAverageTransformation(const cv::Mat &i
 
             push_back(matxd_ ,vec4d, sample_);
             cv::Vec3d trans= H_1_2.translation();
-            trans_acc_    = trans_acc_+trans;
+            trans_acc_    = trans_acc_ + trans;
        
             sample_++;
             counter_++;
@@ -295,19 +260,19 @@ bool dualExtrinsicCalibration::affine3ToMat(cv::Matx33f &A, cv::Mat &M )
     return 1;
 }
 
-bool dualExtrinsicCalibration::cvQuatToVector4d(const cv::Quat<double> &Q, Eigen::Vector4d &q)
+void dualExtrinsicCalibration::cvQuatToVector4d(const cv::Quat<double> &Q, Eigen::Vector4d &q)
 {
-    for(size_t i= 0; i<4; i++)
-    {
-        q(i) = Q[i];
-    }
-    return 1;
+    q(0) = Q[0];
+    q(1) = Q[1];
+    q(2) = Q[2];
+    q(3) = Q[3];
+
 }
-bool dualExtrinsicCalibration::vector4dToCvQuat(const Eigen::Vector4d &q, cv::Quat<double> &Q)
+void dualExtrinsicCalibration::vector4dToCvQuat(const Eigen::Vector4d &q, cv::Quat<double> &Q)
 {
-    for(size_t i= 0; i<4; i++)
-    {
-        Q[i] = q(i);
-    }
-    return 1;
+    Q[1] = q(1);
+    Q[2] = q(2);
+    Q[3] = q(3);
+    Q[0] = q(0);
+  
 }

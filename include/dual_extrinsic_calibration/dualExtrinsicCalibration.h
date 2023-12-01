@@ -29,8 +29,7 @@ class dualExtrinsicCalibration
     private:
         poseEstimation pose1_;
         poseEstimation pose2_;
-        void getVecFromMat(std::vector<double> &vec, cv::Mat &M);
-        bool cvQuatToVector4d(const cv::Quat<double> &Q, Eigen::Vector4d &q);
+        
         Eigen::MatrixXd matxd_;
         cv::Vec3d trans_acc_;
         int num_samples_, counter_;
@@ -49,13 +48,15 @@ class dualExtrinsicCalibration
         ~dualExtrinsicCalibration();
         //bool copmuteTransformation(cv::Mat &img1, cv::Mat &img2);
         bool copmuteTransformation(const cv::Mat &img1,const cv::Mat &img2);
-        bool continuousTransformation(const cv::Mat &img1,const cv::Mat &img2,std::vector<double> &orientation, std::vector<double> &position);
+        //bool continuousTransformation(const cv::Mat &img1,const cv::Mat &img2,std::vector<double> &orientation, std::vector<double> &position);
         bool continuousNAverageTransformation(const cv::Mat &img1,const cv::Mat &img2,std::vector<double> &orientation, std::vector<double> &position);
         bool averageTransformation();
         bool affine3ToMat(cv::Matx33f &A, cv::Mat &M  );
         Eigen::Vector4d avg_quaternion_markley();
         cv::Vec3d computeAverageTranslation();
-        bool vector4dToCvQuat(const Eigen::Vector4d &q, cv::Quat<double> &Q);
+        void vector4dToCvQuat(const Eigen::Vector4d &q, cv::Quat<double> &Q);
+        void getVecFromMat(std::vector<double> &vec, cv::Mat &M);
+        void cvQuatToVector4d(const cv::Quat<double> &Q, Eigen::Vector4d &q);
         double getQX();
         double getQY();
         double getQZ();

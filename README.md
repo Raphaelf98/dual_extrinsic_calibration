@@ -1,7 +1,7 @@
 # Dual Extrinsic Calibration
 This package provides a tool for:
 - a) calibrating two cameras extrinsically,
-- b) publishing their relative transform to the tf tree.
+- b) publishing their relative transform to tf tree.
 
 
 ## Dependencies
