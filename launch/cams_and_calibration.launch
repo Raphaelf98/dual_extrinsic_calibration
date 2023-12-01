@@ -9,10 +9,16 @@
   </include>
   <!--Launch calibration tool. Adjust launch parmameters according to camera image and camera topic names.-->
   <node pkg="dual_extrinsic_calibration" type="dual_extrinsic_calibration_node" name="dual_extrinsic_calibration_node"  output="screen"/>
-    <param name="camera_1_image" value="/935322071831/color/image_raw" type="string"/>
+    <param name="camera_1_image" value="/935322071831/color/image_raw" />
     <param name="camera_2_image" value="/939622074287/color/image_raw"/>
     <param name="camera_1_info" value="/935322071831/color/camera_info"/>
     <param name="camera_2_info" value="/939622074287/color/camera_info"/>
+    <!--Chessboard dimensions-->
+    <param name="chessboarad_size_a" type="int" value="8" />
+    <param name="chessboarad_size_b" type="int" value="5" />
+    <param name="chessboarad_length" type="double" value="0.1" />
+    <!--Number of samples to take before computing average transform-->
+    <param name="sample_size" type="int" value="3" />
   <!--Launch TF publisher to publish camera pose relative to parent frame (provide optical axis frame)-->
   <node pkg="dual_extrinsic_calibration" type="tfPosePublisher" name="tf_pose_broadcaster"/>
     <param name="parent_optical_frame" value="935322071831_color_optical_frame"/>

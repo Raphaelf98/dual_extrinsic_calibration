@@ -2,7 +2,6 @@
 
 poseEstimation::poseEstimation()
 {
-    std::cout<< "created Pose Estimator"<<std::endl;
 }
 /*
 Initialize class members with required parameters:
@@ -23,7 +22,7 @@ void poseEstimation::initialize(cv::Size_<int> boardSize,float squareSize,const 
     axis_.push_back(cv::Point3d(3 * squareSize_, 0.0, 0.0));
     axis_.push_back(cv::Point3d(0.0, 3 * squareSize_, 0.0));
     axis_.push_back(cv::Point3d(0.0, 0.0, 3 * squareSize_));
-    std::cout<<"Chessboard Size: "<<boardSize_.width << "x"<<boardSize_.height<<std::endl;
+    std::cout<<"Chessboard Size: "<<boardSize_.width << "x"<<boardSize_.height << " size:" << squareSize<<std::endl;
 }
 poseEstimation::~poseEstimation()
 {

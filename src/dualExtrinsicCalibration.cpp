@@ -64,12 +64,14 @@ The following Paramters are required:
 dualExtrinsicCalibration::dualExtrinsicCalibration(cv::Size_<int> boardSize,float squareSize, cv::Mat& cameraMatrix1,cv::Mat& cameraMatrix2,  
                             const std::vector<double>& distCoeffs1, const std::vector<double>& distCoeffs2, int num_samples)
 {
+    
     counter_=0;
     sample_ = 0;
     num_samples_=num_samples;
     matxd_ = Eigen::MatrixXd(num_samples_,4);
     pose1_ = poseEstimation();
     pose2_ = poseEstimation();
+    std::cout<<"Chessboard Size: "<<boardSize.width << "x"<<boardSize.height << " size:" << squareSize<<std::endl;
     pose1_.initialize(boardSize, squareSize, cameraMatrix1, distCoeffs1);
     pose2_.initialize(boardSize, squareSize ,cameraMatrix2, distCoeffs2);
 
@@ -224,28 +226,35 @@ Used in combination with averageTransformation class member function.
 */
 bool dualExtrinsicCalibration::copmuteTransformation(const cv::Mat &img1,const cv::Mat &img2)
 {
-    cv::Affine3<double> H1,H2,H2_inv,H_1_2;
-    pose1_.estimatePose(img1);
-    H1 = pose1_.getTransform();
-   
-    pose2_.estimatePose(img2);
-    H2 = pose2_.getTransform();
+    if(pose1_.estimatePose(img1) && pose2_.estimatePose(img2))
+    {
+        cv::Affine3<double> H1,H2,H2_inv,H_1_2;
 
-    H2_inv = H2.inv();
-    H_1_2 = H2_inv.concatenate(H1);
-    cv::Matx33f Q = H_1_2.rotation();
-    cv::Mat input;
-    Eigen::Vector4d vec4d;
-
-    push_back(matxd_ ,vec4d, sample_);
-    cv::Vec3d trans= H_1_2.translation();
-    trans_acc_    = trans_acc_+trans;
-    std::cout << "TRANS MATRIX: "<< trans<<std::endl;
-    std::cout << "MATRIX: "<< trans_acc_<<std::endl;
-    std::cout<<"H12 rotation: "<< H_1_2.rotation()<<std::endl;
+        H1 = pose1_.getTransform();
     
-    std::cout<<"H12 translation: "<< H_1_2.translation()<<std::endl;
-    sample_++;
+    
+        H2 = pose2_.getTransform();
+
+        H2_inv = H2.inv();
+        H_1_2 = H2_inv.concatenate(H1);
+        cv::Matx33f Q = H_1_2.rotation();
+        cv::Mat input;
+        Eigen::Vector4d vec4d;
+
+        push_back(matxd_ ,vec4d, sample_);
+        cv::Vec3d trans= H_1_2.translation();
+        trans_acc_    = trans_acc_+trans;
+        std::cout << "TRANS MATRIX: "<< trans<<std::endl;
+        std::cout << "MATRIX: "<< trans_acc_<<std::endl;
+        std::cout<<"H12 rotation: "<< H_1_2.rotation()<<std::endl;
+
+        std::cout<<"H12 translation: "<< H_1_2.translation()<<std::endl;
+        sample_++;
+        return true;
+    }
+    else{
+        return false;
+    }
 }
 bool dualExtrinsicCalibration::affine3ToMat(cv::Matx33f &A, cv::Mat &M )
 {
