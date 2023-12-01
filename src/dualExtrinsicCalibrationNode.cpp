@@ -43,7 +43,7 @@ class DualCalibrator
           int a,b;
           nh_.getParam("/chessboard_size_a", a);
           nh_.getParam("/chessboard_size_b", b);
-          size_ = cv::Size_<int>(0,0);
+          size_ = cv::Size_<int>(a,b);
           nh_.getParam("/chessboarad_length",c_length_ );
           nh_.getParam("/sample_size", num_samples_);
           
