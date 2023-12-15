@@ -64,14 +64,13 @@ The following Paramters are required:
 dualExtrinsicCalibration::dualExtrinsicCalibration(cv::Size_<int> boardSize,float squareSize, cv::Mat& cameraMatrix1,cv::Mat& cameraMatrix2,  
                             const std::vector<double>& distCoeffs1, const std::vector<double>& distCoeffs2, int num_samples)
 {
-    
     counter_=0;
     sample_ = 0;
     num_samples_=num_samples;
     matxd_ = Eigen::MatrixXd(num_samples_,4);
     pose1_ = poseEstimation();
     pose2_ = poseEstimation();
-    std::cout<<"Chessboard Size: "<<boardSize.width << "x"<<boardSize.height << " size:" << squareSize<<std::endl;
+    std::cout<<"Chessboard Size: "<<boardSize.width << "x"<<boardSize.height << ", size:" << squareSize<<", samples: "<<num_samples_ <<std::endl;
     pose1_.initialize(boardSize, squareSize, cameraMatrix1, distCoeffs1);
     pose2_.initialize(boardSize, squareSize ,cameraMatrix2, distCoeffs2);
 
@@ -163,17 +162,22 @@ bool dualExtrinsicCalibration::continuousNAverageTransformation(const cv::Mat &i
     if(counter_ <= num_samples_)
     {
          cv::Affine3<double> H1,H2,H2_inv,H_1_2;
-        
-        if(pose1_.estimatePose(img1) && pose2_.estimatePose(img2))
+         std::cout<< "HERE1"<<std::endl;
+        if(pose1_.estimatePose(img1) & pose2_.estimatePose(img2))
         {
+            std::cout<< "HERE2"<<std::endl;
             H1 = pose1_.getTransform();
+             std::cout<< "HERE3"<<std::endl;
             H2 = pose2_.getTransform();
+             std::cout<< "HERE4"<<std::endl;
             H2_inv = H2.inv();
+             std::cout<< "HERE5"<<std::endl;
             H_1_2 = H2_inv.concatenate(H1);
+             std::cout<< "HERE6"<<std::endl;
             cv::Matx33f Q = H_1_2.rotation();
             cv::Mat input;
             Eigen::Vector4d vec4d;
-
+ 
             affine3ToMat(Q,input);
             cv::Quat<double> q = cv::Quat<double>::createFromRotMat(input);
             cvQuatToVector4d(q, vec4d);
@@ -226,13 +230,11 @@ Used in combination with averageTransformation class member function.
 */
 bool dualExtrinsicCalibration::copmuteTransformation(const cv::Mat &img1,const cv::Mat &img2)
 {
-    if(pose1_.estimatePose(img1) && pose2_.estimatePose(img2))
+    if(pose1_.estimatePose(img1) & pose2_.estimatePose(img2))
     {
         cv::Affine3<double> H1,H2,H2_inv,H_1_2;
 
         H1 = pose1_.getTransform();
-    
-    
         H2 = pose2_.getTransform();
 
         H2_inv = H2.inv();

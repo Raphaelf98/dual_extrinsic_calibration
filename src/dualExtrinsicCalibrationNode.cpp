@@ -38,14 +38,18 @@ class DualCalibrator
           //retrieve parameters from launch file
           nh_.getParam("camera_1_image",img_topic_1_ );
           nh_.getParam("camera_2_image",img_topic_2_ );
+
           nh_.getParam("camera_1_info",inf_topic_1_ );
           nh_.getParam("camera_2_info",inf_topic_2_ );
-          int a,b;
-          nh_.getParam("/chessboard_size_a", a);
-          nh_.getParam("/chessboard_size_b", b);
-          size_ = cv::Size_<int>(a,b);
-          nh_.getParam("/chessboarad_length",c_length_ );
-          nh_.getParam("/sample_size", num_samples_);
+          
+          double a,b;
+          nh_.getParam("chessboard_size_a", a);
+          nh_.getParam("chessboard_size_b", b);
+         
+          size_.width  = (int) a;
+          size_.height  = (int) b;
+          nh_.getParam("chessboard_length",c_length_ );
+          nh_.getParam("sample_size", num_samples_);
           
           image1_sub_.subscribe(nh_, img_topic_1_, 1);
           image2_sub_.subscribe(nh_, img_topic_2_, 1);
@@ -78,12 +82,12 @@ class DualCalibrator
                }
             
              }
-             //cv::Size_<int> size(8,5);
+            
             
            dualcalibrator_ = dualExtrinsicCalibration(size_, c_length_, K1_mat, K2_mat,camInfomsg_1->D, camInfomsg_2->D,num_samples_);
                
           }
-           std::cout<<"NUM SAMPLES !"<<num_samples_;
+          
           pose_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("camera_pose_rel", 1);
          }
         /*
@@ -149,9 +153,13 @@ class DualCalibrator
             if (k == 32)
             {
 
-              dualcalibrator_.copmuteTransformation(cv_bridge::toCvShare(image1, "bgr8")->image,cv_bridge::toCvShare(image2, "bgr8")->image);
-              std::cout << "compute transformation .. "<<std::endl;
-              sample_ ++;
+              if(dualcalibrator_.copmuteTransformation(cv_bridge::toCvShare(image1, "bgr8")->image,cv_bridge::toCvShare(image2, "bgr8")->image)){
+                std::cout << "Compute transformation .. "<<std::endl;
+                sample_ ++;
+              }
+              else{
+                std::cout << "Failed to compute transformation .. "<<std::endl;
+              }
             }
            }
            else if(sample_==num_samples_)

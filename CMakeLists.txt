@@ -15,7 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 
-find_package(OpenCV 4.2.0 REQUIRED)
+find_package(OpenCV)# 4.2.0 REQUIRED )#PATHS "/path/to/OCV3.2/install/dir/")
 find_package(Eigen3 REQUIRED)
 
 include_directories(
@@ -24,20 +24,20 @@ include_directories(
   ${OpenCV_INCLUDE_DIRS}
   
 )
-
+catkin_package()
 ## Declare a C++ library
 add_library(poseEstimation
 src/poseEstimation.cpp include/${PROJECT_NAME}/poseEstimation.h
  )
 target_include_directories(poseEstimation PRIVATE include/dual_extrinsic_calibration)
-target_link_libraries(poseEstimation Eigen3::Eigen ${catkin_LIBRARIES})
+target_link_libraries(poseEstimation Eigen3::Eigen ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 add_library(dualExtrinsicCalibration
 src/dualExtrinsicCalibration.cpp
 include/${PROJECT_NAME}/dualExtrinsicCalibration.h
  )
 target_include_directories(dualExtrinsicCalibration PRIVATE include/dual_extrinsic_calibration)
-target_link_libraries(dualExtrinsicCalibration Eigen3::Eigen poseEstimation )
+target_link_libraries(dualExtrinsicCalibration Eigen3::Eigen poseEstimation ${OpenCV_LIBRARIES})
 
 add_executable(${PROJECT_NAME}_node src/dualExtrinsicCalibrationNode.cpp)
 target_include_directories(${PROJECT_NAME}_node PRIVATE include/dual_extrinsic_calibration)

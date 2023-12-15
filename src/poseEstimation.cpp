@@ -83,8 +83,22 @@ bool poseEstimation::estimatePose(const cv::Mat &img)
     
     cv::cvtColor(img, gray, cv::COLOR_BGR2GRAY);
     assert(!gray.empty());
-    bool patternWasFound = cv::findChessboardCorners(
-      gray, boardSize_,  corners, cv::CALIB_CB_ADAPTIVE_THRESH + cv::CALIB_CB_NORMALIZE_IMAGE + cv::CALIB_CB_FAST_CHECK);
+    
+    cv::Size patternsize(8,5); 
+    bool patternWasFound = false;
+    try
+    {
+        std::cout<<"Here1"<<std::endl;
+        std::cout<<"Chessboard Size: "<<boardSize_.width << "x"<<boardSize_.height <<std::endl;
+        patternWasFound = cv::findChessboardCorners(gray, boardSize_, corners);//,cv::CALIB_CB_FAST_CHECK);
+        std::cout<<"Here2"<<std::endl;
+    }
+    catch (const cv::Exception& e) 
+    {
+    std::cerr << "OpenCV Exception: " << e.what() << std::endl;
+     std::cerr << "Error code: " << e.code << std::endl;
+    std::cerr << "Error description: " << e.err << std::endl;
+    }
     
     if(patternWasFound)
     {
@@ -96,7 +110,7 @@ bool poseEstimation::estimatePose(const cv::Mat &img)
         drawAxes_(img, outputFrame, imgPts, corners);
      
         cv::drawChessboardCorners(outputFrame, boardSize_, corners,patternWasFound);
-    
+       
         RVec_ =  to_vec3f_(rvec);
         cv::Vec3f translationVec =  to_vec3f_(tvec);
         
@@ -124,11 +138,9 @@ Create 3D chessboard corner points.
 void poseEstimation::calcChessboardCorners_()
 {
         objectPoints_.resize(0);
-        
-        
-        for( int i = 0; i < 5; i++ )
+        for( int i = 0; i < boardSize_.height; i++ )
         {
-            for( int j = 0; j < 8; j++ )
+            for( int j = 0; j < boardSize_.width; j++ )
             {
                 objectPoints_.push_back(cv::Point3f(float(j*squareSize_),
                                           float(i*squareSize_), 0));
