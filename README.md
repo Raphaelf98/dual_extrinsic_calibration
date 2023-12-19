@@ -1,5 +1,6 @@
 # Dual Extrinsic Calibration
-![Relative TF frames after calibration visualized in rviz](frames.png)
+![](frames.png)
+
 Relative TF frames after calibration visualized in rviz
 
 
