@@ -140,14 +140,9 @@ bool dualExtrinsicCalibration::averageTransformation()
 {   
 
    avg_quat_ = avg_quaternion_markley();
-   cv::Quat<double> q;
-   cv::Matx33d avgRot;
-   vector4dToCvQuat(avg_quat_,q);
-   avgRot = q.toRotMat3x3();
-   avg_trans_ = computeAverageTranslation();
-    cv::Affine3d final_(avgRot,avg_trans_);
-    std::cout<< "Average Rotation Matrix: "<<final_.rotation()<<std::endl;
-    std::cout<< "Average Translation Matrix: "<<final_.translation()<<std::endl;
+
+   avg_trans_ = computeAverageTranslation();     
+  
    return 0;
 }
 
@@ -162,30 +157,24 @@ bool dualExtrinsicCalibration::continuousNAverageTransformation(const cv::Mat &i
     if(counter_ <= num_samples_)
     {
          cv::Affine3<double> H1,H2,H2_inv,H_1_2;
-         std::cout<< "HERE1"<<std::endl;
         if(pose1_.estimatePose(img1) & pose2_.estimatePose(img2))
         {
-            std::cout<< "HERE2"<<std::endl;
             H1 = pose1_.getTransform();
-             std::cout<< "HERE3"<<std::endl;
             H2 = pose2_.getTransform();
-             std::cout<< "HERE4"<<std::endl;
             H2_inv = H2.inv();
-             std::cout<< "HERE5"<<std::endl;
             H_1_2 = H2_inv.concatenate(H1);
-             std::cout<< "HERE6"<<std::endl;
             cv::Matx33f Q = H_1_2.rotation();
-            cv::Mat input;
+            Eigen::Matrix3f eigRotMat;
+            affine3ToEigen(Q,eigRotMat);
+            Eigen::Quaternion<float> eigQuat(eigRotMat);
             Eigen::Vector4d vec4d;
- 
-            affine3ToMat(Q,input);
-            cv::Quat<double> q = cv::Quat<double>::createFromRotMat(input);
-            cvQuatToVector4d(q, vec4d);
-
+            vec4d(0) = eigQuat.x();
+            vec4d(1) = eigQuat.y();
+            vec4d(2) = eigQuat.z();
+            vec4d(3) = eigQuat.w();
             push_back(matxd_ ,vec4d, sample_);
             cv::Vec3d trans= H_1_2.translation();
             trans_acc_    = trans_acc_ + trans;
-       
             sample_++;
             counter_++;
         }
@@ -200,16 +189,12 @@ bool dualExtrinsicCalibration::continuousNAverageTransformation(const cv::Mat &i
         trans_acc_(1)= 0;
         trans_acc_(2)= 0;
         avg_quat_ = avg_quaternion_markley();
-        orientation[0] = avg_quat_(1);
-        orientation[1] = avg_quat_(2);
-        orientation[2] = avg_quat_(3);
-        orientation[3] = avg_quat_(0);
+        orientation[0] = avg_quat_(0);
+        orientation[1] = avg_quat_(1);
+        orientation[2] = avg_quat_(2);
+        orientation[3] = avg_quat_(3);
         
-        cv::Quat<double> q;
-        vector4dToCvQuat(avg_quat_,q);
-        cv::Vec3d angles = q.toEulerAngles(cv::QuatEnum::INT_ZYX);
-        std::cout<<"QUATERNIONS: "<<q[0]<<","<<q[1]<<","<<q[2]<<","<<q[3]<<"    ANGLES: "<<(180/M_PI)*angles <<std::endl;
-        matxd_ = Eigen::MatrixXd(10,4);
+        matxd_ = Eigen::MatrixXd(num_samples_,4);
         counter_=0;
         sample_=0;
         return true;
@@ -240,8 +225,15 @@ bool dualExtrinsicCalibration::copmuteTransformation(const cv::Mat &img1,const c
         H2_inv = H2.inv();
         H_1_2 = H2_inv.concatenate(H1);
         cv::Matx33f Q = H_1_2.rotation();
-        cv::Mat input;
+
+        Eigen::Matrix3f eigRotMat;
+        affine3ToEigen(Q,eigRotMat);
+        Eigen::Quaternion<float> eigQuat(eigRotMat);
         Eigen::Vector4d vec4d;
+        vec4d(0) = eigQuat.x();
+        vec4d(1) = eigQuat.y();
+        vec4d(2) = eigQuat.z();
+        vec4d(3) = eigQuat.w();
 
         push_back(matxd_ ,vec4d, sample_);
         cv::Vec3d trans= H_1_2.translation();
@@ -249,7 +241,6 @@ bool dualExtrinsicCalibration::copmuteTransformation(const cv::Mat &img1,const c
         std::cout << "TRANS MATRIX: "<< trans<<std::endl;
         std::cout << "MATRIX: "<< trans_acc_<<std::endl;
         std::cout<<"H12 rotation: "<< H_1_2.rotation()<<std::endl;
-
         std::cout<<"H12 translation: "<< H_1_2.translation()<<std::endl;
         sample_++;
         return true;
@@ -258,7 +249,7 @@ bool dualExtrinsicCalibration::copmuteTransformation(const cv::Mat &img1,const c
         return false;
     }
 }
-bool dualExtrinsicCalibration::affine3ToMat(cv::Matx33f &A, cv::Mat &M )
+void dualExtrinsicCalibration::affine3ToMat(const cv::Matx33f &A, cv::Mat &M )
 {
     M = cv::Mat::zeros(3,3, CV_64FC1);
 
@@ -268,22 +259,15 @@ bool dualExtrinsicCalibration::affine3ToMat(cv::Matx33f &A, cv::Mat &M )
 
         }
     }
-    return 1;
+   
 }
-
-void dualExtrinsicCalibration::cvQuatToVector4d(const cv::Quat<double> &Q, Eigen::Vector4d &q)
-{
-    q(0) = Q[0];
-    q(1) = Q[1];
-    q(2) = Q[2];
-    q(3) = Q[3];
-
-}
-void dualExtrinsicCalibration::vector4dToCvQuat(const Eigen::Vector4d &q, cv::Quat<double> &Q)
-{
-    Q[1] = q(1);
-    Q[2] = q(2);
-    Q[3] = q(3);
-    Q[0] = q(0);
-  
+void dualExtrinsicCalibration::affine3ToEigen(const cv::Matx33f &A, Eigen::Matrix3f &M ){
+    
+    for(size_t i= 0; i<3; i++)
+    {
+        for(size_t j=0; j<3; j++)
+        {
+            M(i,j) = A(i,j);
+        }
+    }
 }

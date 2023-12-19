@@ -7,7 +7,6 @@ Panels:
         - /Global Options1
         - /Status1
         - /TF1
-        - /TF1/Status1
         - /TF1/Frames1
         - /Image1
         - /Image2
@@ -63,6 +62,10 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        camera_color_frame:
+          Value: false
+        camera_color_optical_frame:
+          Value: false
         camera_depth_frame:
           Value: false
         camera_depth_optical_frame:
@@ -81,6 +84,9 @@ Visualization Manager:
       Show Names: true
       Tree:
         camera_link:
+          camera_color_frame:
+            camera_color_optical_frame:
+              {}
           camera_depth_frame:
             camera_depth_optical_frame:
               {}
@@ -91,7 +97,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /usb_cam/image_raw
+      Image Topic: /camera/color/image_raw
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -179,5 +185,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1440
-  X: 2235
-  Y: 177
+  X: 480
+  Y: 146

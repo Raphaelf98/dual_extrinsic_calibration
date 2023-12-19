@@ -103,7 +103,7 @@ class DualCalibrator
         void callback(const ImageConstPtr& image1, const ImageConstPtr& image2)
          {
          
-           
+          
            try
            {
              cv::imshow("Camera 1", cv_bridge::toCvShare(image1, "bgr8")->image);
@@ -116,6 +116,13 @@ class DualCalibrator
              ROS_ERROR("Could not convert from '%s' to 'bgr8'.", image2->encoding.c_str());
            }
            int k = cv::waitKey(1);
+           //Press "q" to shutdown rosnode
+           if (k ==113)
+           {
+            
+            ROS_INFO("Shutting down dual_calibration_node");
+            ros::shutdown();
+            } 
            //Press "c" to run in continuous mode
            if (k == 99)
            {
@@ -130,15 +137,11 @@ class DualCalibrator
             {
               ROS_INFO("Publishing Pose");
               // construct a pose message
-
               pose_stamped_.header.frame_id = "camera_frame";
-              
-              
-              pose_stamped_.pose.orientation.x = q[1];
-              pose_stamped_.pose.orientation.y = q[2];
-              pose_stamped_.pose.orientation.z = q[3];
-              pose_stamped_.pose.orientation.w = q[0];
-
+              pose_stamped_.pose.orientation.x = q[0];
+              pose_stamped_.pose.orientation.y = q[1];
+              pose_stamped_.pose.orientation.z = q[2];
+              pose_stamped_.pose.orientation.w = q[3];
               pose_stamped_.pose.position.x = t[0];
               pose_stamped_.pose.position.y = t[1];
               pose_stamped_.pose.position.z = t[2];
@@ -153,11 +156,13 @@ class DualCalibrator
             if (k == 32)
             {
 
-              if(dualcalibrator_.copmuteTransformation(cv_bridge::toCvShare(image1, "bgr8")->image,cv_bridge::toCvShare(image2, "bgr8")->image)){
+              if(dualcalibrator_.copmuteTransformation(cv_bridge::toCvShare(image1, "bgr8")->image,cv_bridge::toCvShare(image2, "bgr8")->image))
+              {
                 std::cout << "Compute transformation .. "<<std::endl;
                 sample_ ++;
               }
-              else{
+              else
+              {
                 std::cout << "Failed to compute transformation .. "<<std::endl;
               }
             }
@@ -167,7 +172,7 @@ class DualCalibrator
               dualcalibrator_.averageTransformation();
               cv::destroyAllWindows();
               ROS_INFO("Publishing Pose");
-              // construct a pose message
+              // construct pose message
 
               pose_stamped_.header.frame_id = "camera_frame";
               

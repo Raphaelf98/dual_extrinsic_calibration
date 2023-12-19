@@ -3,9 +3,9 @@
 #include"poseEstimation.h"
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues> 
-#include <opencv2/core/quaternion.hpp>
-#include <geometry_msgs/PoseStamped.h>
 
+#include <geometry_msgs/PoseStamped.h>
+#include<Eigen/Geometry>
 /*
 Template function to append row to Eigen::MatrixXd.
 */
@@ -46,17 +46,16 @@ class dualExtrinsicCalibration
                                 const std::vector<double>& distCoeffs1, const std::vector<double>& distCoeffs2, int num_samples);
 
         ~dualExtrinsicCalibration();
-        //bool copmuteTransformation(cv::Mat &img1, cv::Mat &img2);
         bool copmuteTransformation(const cv::Mat &img1,const cv::Mat &img2);
-        //bool continuousTransformation(const cv::Mat &img1,const cv::Mat &img2,std::vector<double> &orientation, std::vector<double> &position);
         bool continuousNAverageTransformation(const cv::Mat &img1,const cv::Mat &img2,std::vector<double> &orientation, std::vector<double> &position);
         bool averageTransformation();
-        bool affine3ToMat(cv::Matx33f &A, cv::Mat &M  );
+        void affine3ToMat(const cv::Matx33f &A, cv::Mat &M  );
+        void affine3ToEigen(const cv::Matx33f &A, Eigen::Matrix3f &M );
         Eigen::Vector4d avg_quaternion_markley();
         cv::Vec3d computeAverageTranslation();
-        void vector4dToCvQuat(const Eigen::Vector4d &q, cv::Quat<double> &Q);
+      
         void getVecFromMat(std::vector<double> &vec, cv::Mat &M);
-        void cvQuatToVector4d(const cv::Quat<double> &Q, Eigen::Vector4d &q);
+    
         double getQX();
         double getQY();
         double getQZ();

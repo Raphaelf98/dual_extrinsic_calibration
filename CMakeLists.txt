@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(dual_extrinsic_calibration)
-set(OpenCV_DIR /usr/local/lib/cmake/opencv4)
-#find_package(OpenCV 4.2.0 REQUIRED)
+#set(OpenCV_DIR /usr/local/lib/cmake/opencv4)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
@@ -12,18 +11,14 @@ find_package(catkin REQUIRED COMPONENTS
   message_filters
   tf
   geometry_msgs
-  OpenCV
 )
 
 ## System dependencies are found with CMake's conventions
-
-
 find_package(Eigen3 REQUIRED)
 
 include_directories(
 # include
   ${catkin_INCLUDE_DIRS}
-  ${OpenCV_INCLUDE_DIRS}
   
 )
 catkin_package()
@@ -52,7 +47,6 @@ target_link_libraries(${PROJECT_NAME}_node
 add_executable(tfPosePublisher src/tfPosePublisher.cpp)
 target_link_libraries(tfPosePublisher
    ${catkin_LIBRARIES}
-   
    dualExtrinsicCalibration
  )
 

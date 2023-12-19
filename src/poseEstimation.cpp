@@ -22,7 +22,6 @@ void poseEstimation::initialize(cv::Size_<int> boardSize,float squareSize,const 
     axis_.push_back(cv::Point3d(3 * squareSize_, 0.0, 0.0));
     axis_.push_back(cv::Point3d(0.0, 3 * squareSize_, 0.0));
     axis_.push_back(cv::Point3d(0.0, 0.0, 3 * squareSize_));
-    std::cout<<"Chessboard Size: "<<boardSize_.width << "x"<<boardSize_.height << " size:" << squareSize<<std::endl;
 }
 poseEstimation::~poseEstimation()
 {
@@ -53,15 +52,13 @@ void poseEstimation::helper_RT_ImgPoints_(cv::Mat &src_, cv::Mat &rvec_,
                             30, 0.001);
   cv::cornerSubPix(src_, corners_, cv::Size(11, 11), cv::Size(-1, -1),
                    termcrit);
-  /*cv::solvePnPRansac(boardPts_, corners_, cameraMatrix_,
-                     distCoeffs_, rvec_, tvec_, false, 100, 8.0, 0.99,
-                     cv::noArray(), cv::SOLVEPNP_EPNP);*/
+ 
     cv::solvePnP(boardPts_, corners_, cameraMatrix_,
                      distCoeffs_, rvec_, tvec_, false,cv::SOLVEPNP_IPPE);
 }
 /*
-    Transfromation from cv::Mat1f to cv::Vec3f. 
-    Returns cv::Vec3f.
+Transfromation from cv::Mat1f to cv::Vec3f. 
+Returns cv::Vec3f.
 */
 cv::Vec3f poseEstimation::to_vec3f_(cv::Mat1f const& m)
 {
@@ -83,21 +80,17 @@ bool poseEstimation::estimatePose(const cv::Mat &img)
     
     cv::cvtColor(img, gray, cv::COLOR_BGR2GRAY);
     assert(!gray.empty());
+
     
     cv::Size patternsize(8,5); 
     bool patternWasFound = false;
     try
     {
-        std::cout<<"Here1"<<std::endl;
-        std::cout<<"Chessboard Size: "<<boardSize_.width << "x"<<boardSize_.height <<std::endl;
-        patternWasFound = cv::findChessboardCorners(gray, boardSize_, corners);//,cv::CALIB_CB_FAST_CHECK);
-        std::cout<<"Here2"<<std::endl;
+        patternWasFound = cv::findChessboardCorners(gray, boardSize_, corners, cv::CALIB_CB_FAST_CHECK);
     }
     catch (const cv::Exception& e) 
     {
-    std::cerr << "OpenCV Exception: " << e.what() << std::endl;
-     std::cerr << "Error code: " << e.code << std::endl;
-    std::cerr << "Error description: " << e.err << std::endl;
+        std::cerr << "OpenCV Exception: " << e.what() << std::endl;
     }
     
     if(patternWasFound)
@@ -118,7 +111,8 @@ bool poseEstimation::estimatePose(const cv::Mat &img)
 
         return true;
     }
-    else{
+    else
+    {
         std::cout<<"No corners could be found"<<std::endl;
         return 0;
     }
