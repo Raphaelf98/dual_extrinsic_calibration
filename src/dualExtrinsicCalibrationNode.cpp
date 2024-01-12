@@ -51,6 +51,7 @@ class DualCalibrator
           nh_.getParam("chessboard_length",c_length_ );
           nh_.getParam("sample_size", num_samples_);
           
+	  nh_.getParam("child_optical_frame",child_optical_frame_);
           image1_sub_.subscribe(nh_, img_topic_1_, 1);
           image2_sub_.subscribe(nh_, img_topic_2_, 1);
          
@@ -137,7 +138,7 @@ class DualCalibrator
             {
               ROS_INFO("Publishing Pose");
               // construct a pose message
-              pose_stamped_.header.frame_id = "camera_frame";
+              pose_stamped_.header.frame_id = child_optical_frame_;
               pose_stamped_.pose.orientation.x = q[0];
               pose_stamped_.pose.orientation.y = q[1];
               pose_stamped_.pose.orientation.z = q[2];
@@ -174,7 +175,7 @@ class DualCalibrator
               ROS_INFO("Publishing Pose");
               // construct pose message
 
-              pose_stamped_.header.frame_id = "camera_frame";
+              pose_stamped_.header.frame_id = child_optical_frame_;
               
               pose_stamped_.pose.orientation.x = dualcalibrator_.getQX();
               pose_stamped_.pose.orientation.y = dualcalibrator_.getQY();
@@ -211,6 +212,7 @@ class DualCalibrator
         message_filters::Subscriber<Image> image2_sub_;
         message_filters::Subscriber<CameraInfo> camera1_sub_;
         message_filters::Subscriber<CameraInfo> camera2_sub_;
+	std::string child_optical_frame_;
         Synchronizer<MySyncPolicy_> sync_;
         dualExtrinsicCalibration dualcalibrator_;
         ros::NodeHandle nh_;
